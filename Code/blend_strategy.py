@@ -49,11 +49,9 @@ resultado_naive, portafolio_fundamental, logs = bt.backtest_sector_lagged_strate
 
 resultado_naive['Date'] = resultado_naive.index
 
-portafolio_fundamental["suma_total"] = portafolio_fundamental.sum(axis=1)
+#portafolio_fundamental["suma_total"] = portafolio_fundamental.sum(axis=1)
 
-portafolio_fundamental["retorno_diario"] = (
-    portafolio_fundamental["suma_total"].pct_change()
-)
+#portafolio_fundamental["retorno_diario"] = (portafolio_fundamental["suma_total"].pct_change())
 
 
 
@@ -209,5 +207,5 @@ fig.update_layout(
 )
 
 # Exportá la versión combinada
-fig.write_html("blend vs_merval.html")
+fig.write_html(r"C:\Users\Pedro\Research\Fundamentals\Bloomberg\fundamentals_project\Charts\blend_vs_merval_50-50.html")
 
