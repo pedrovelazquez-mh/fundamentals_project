@@ -206,7 +206,8 @@ else:
 resultado_naive, portafolio_fundamental, logs = bt.backtest_sector_lagged_strategy(
     portafolio=portafolio,
     data_base_precios=cd.data_base_precios,
-    merval=cd.merval)
+    merval=cd.merval,
+    market_cap=cd.market_caps)
 resultado_naive['Date'] = resultado_naive.index
 
 

@@ -30,8 +30,6 @@ for nombre in list(fundamentals_data):
           .dt.to_period("Q")
           .apply(lambda p: p.end_time.normalize()))
 
-
-
 market_caps_list = []
 for ticker, df in fundamentals_data.items():
     if "HISTORICAL_MARKET_CAP" in df.columns and "Date" in df.columns:
@@ -48,6 +46,7 @@ for ticker, df in fundamentals_data.items():
 market_caps = market_caps[~((market_caps['Date'] < pd.to_datetime(cfg.strategy_initial_time)))]
 market_caps = market_caps.sort_values(["Ticker", "Date"])
 market_caps["HISTORICAL_MARKET_CAP"] = (market_caps.groupby("Ticker")["HISTORICAL_MARKET_CAP"].ffill())
+market_caps = market_caps.loc[market_caps['Ticker'].isin(cfg.ticker_sector)].reset_index(drop=True)
 market_caps["Sector"]=market_caps["Ticker"].map(cfg.ticker_sector)
 
 price_data={}
@@ -143,6 +142,3 @@ def forward_fill_missing_closes(df, merval):
     df['close'] = df.groupby('ticker')['close'].ffill().bfill()
     return df.sort_values(['Date', 'ticker']).reset_index(drop=True)
 data_base_precios = forward_fill_missing_closes(data_base_precios,merval)
-
-
-
