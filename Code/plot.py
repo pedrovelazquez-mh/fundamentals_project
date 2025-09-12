@@ -10,7 +10,6 @@ portafolio_fundamental=bd.portafolio_fundamental
 merval=cd.merval
 
 
-
 merval['Date'] = pd.to_datetime(merval['Date'])
 merval = merval.set_index('Date').sort_index()
 
@@ -18,8 +17,7 @@ resultado_merval = (
     merval[['close']]
     .rename(columns={'close': 'valor'})
     .reindex(resultado_naive.index)
-    .ffill()
-)
+    .ffill())
 
 V0_naive  = resultado_naive['valor'].iloc[0]
 V0_merval = resultado_merval['valor'].iloc[0]
@@ -155,5 +153,5 @@ fig.update_layout(
 )
 
 # Exportá la versión combinada
-fig.write_html(r"C:\Users\Pedro\Research\Fundamentals\Bloomberg\fundamentals_project\Charts\blend_vs_merval_50-50.html")
+fig.write_html(r"C:\Users\Pedro\Research\Fundamentals\Bloomberg\fundamentals_project\Charts\blend_vs_merval_new_portfolio.html")
 
