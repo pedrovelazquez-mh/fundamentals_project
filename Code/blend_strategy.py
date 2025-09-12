@@ -27,7 +27,7 @@ blend = blend.loc[:, ~blend.columns.str.startswith(('value','quality','credit'))
 blend["blend_score"]=(blend["W_ts"]+blend["W_cs"])/2
 
 
-def build_portfolio_binario(df: pd.DataFrame, min_per_sector: int = 2) -> pd.DataFrame:    #para seguir las ponderaciones del merval, tiene que haber siempre un minimo de 2 por sector
+def build_portfolio_binario(df: pd.DataFrame, min_per_sector: int = cfg.min_empresas) -> pd.DataFrame:    #para seguir las ponderaciones del merval, tiene que haber siempre un minimo de 2 por sector
     df = df.sort_values(['Date', 'ticker']).copy()
     df['in_base'] = df['blend_score'] > 0
     out = []
@@ -51,12 +51,12 @@ def build_portfolio_binario(df: pd.DataFrame, min_per_sector: int = 2) -> pd.Dat
 
 portafolio = build_portfolio_binario(blend)
 
-
 """BackTesting"""
 resultado_naive, portafolio_fundamental, logs = bt.backtest_sector_lagged_strategy(
     portafolio=portafolio,
     data_base_precios=cd.data_base_precios,
-    merval=cd.merval)
+    merval=cd.merval,
+    market_caps=cd.market_caps)
 resultado_naive['Date'] = resultado_naive.index
 # portafolio_fundamental["suma_total"] = portafolio_fundamental.sum(axis=1)
 # portafolio_fundamental["retorno_diario"] = (portafolio_fundamental["suma_total"].pct_change())

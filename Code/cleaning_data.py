@@ -45,9 +45,10 @@ for ticker, df in fundamentals_data.items():
 
 market_caps = market_caps[~((market_caps['Date'] < pd.to_datetime(cfg.strategy_initial_time)))]
 market_caps = market_caps.sort_values(["Ticker", "Date"])
-market_caps["HISTORICAL_MARKET_CAP"] = (market_caps.groupby("Ticker")["HISTORICAL_MARKET_CAP"].ffill())
+market_caps["HISTORICAL_MARKET_CAP"] = (market_caps.groupby("Ticker")["HISTORICAL_MARKET_CAP"].ffill().bfill())
 market_caps = market_caps.loc[market_caps['Ticker'].isin(cfg.ticker_sector)].reset_index(drop=True)
 market_caps["Sector"]=market_caps["Ticker"].map(cfg.ticker_sector)
+
 
 price_data={}
 for archivo in os.listdir(cfg.carpeta_prices):
