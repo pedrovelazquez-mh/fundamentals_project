@@ -1,10 +1,9 @@
 import pandas as pd
 import config_fundamentals as cfg
 from collections import defaultdict
-import cleaning_data as cd
 
 
-def backtest_sector_lagged_strategy(portafolio, data_base_precios, merval, market_cap, CFG=cfg):
+def backtest_sector_lagged_strategy(portafolio, data_base_precios, merval, CFG=cfg):
 
     portafolio = portafolio.copy()
     data_base_precios = data_base_precios.copy()
@@ -128,32 +127,21 @@ def backtest_sector_lagged_strategy(portafolio, data_base_precios, merval, marke
                 continue
             cash += qty[t] * float(p)
             qty[t] = 0.0
-#inicio modulo mkt_cap
-        mcap_day = market_cap.loc[market_cap['Date'] == fecha]
 
-        # obtener market caps solo de los tickers seleccionados en el sector
-        caps = []
-        for t in valid_targets:
-            mc = mcap_day.loc[mcap_day['Ticker'] == t, "HISTORICAL_MARKET_CAP"]
-            if not mc.empty:
-                caps.append((t, float(mc.iloc[0])))
-
-        if not caps:
+        n = len(valid_targets)
+        if n == 0:
             return
-        # normalizar pesos por market cap
-        total_cap = sum(mc for _, mc in caps)
-        weights = {t: mc / total_cap for t, mc in caps}
-        # asignación proporcional al market cap
-        for t, w in weights.items():
+        per_value = current_val / n
+
+        # ajustar cantidades para equiponderar en valor
+        for t in valid_targets:
             p = px_exec.get(t)
             if pd.isna(p) or p <= 0:
                 continue
-            target_val = current_val * w
-            target_qty = target_val / float(p)
+            target_qty = per_value / float(p)
             delta_qty  = target_qty - qty[t]
             cash -= delta_qty * float(p)
             qty[t] = target_qty
-#fin  modulo mkt_cap
 
     def rebalance_macro_to_targets(fecha, ciclo_id):
         """Alinea a sector_weights sobre el NAV del día (ejecución con precios del día, sin ffill local).
@@ -280,24 +268,6 @@ def backtest_sector_lagged_strategy(portafolio, data_base_precios, merval, marke
         diarios_row = {t: float(qty[t] * (px.get(t) if pd.notna(px.get(t)) else 0.0)) for t in universe}
         diarios_row["efectivo"] = float(cash)
         diarios[fecha] = diarios_row
+
     portafolio_df = pd.DataFrame(diarios).T.sort_index()
     return resultado, portafolio_df, logs
-
-
-
-"""
-n = len(valid_targets)
-if n == 0:
-    return
-per_value = current_val / n
-
-# ajustar cantidades para equiponderar en valor
-for t in valid_targets:
-    p = px_exec.get(t)
-    if pd.isna(p) or p <= 0:
-        continue
-    target_qty = per_value / float(p)
-    delta_qty  = target_qty - qty[t]
-    cash -= delta_qty * float(p)
-    qty[t] = target_qty
-"""
