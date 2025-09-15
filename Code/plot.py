@@ -39,9 +39,18 @@ retornos_naive = resultado_naive['valor'].pct_change().dropna()
 exceso_retornos = retornos_naive - rf_daily
 sharpe_ratio = (exceso_retornos.mean() / exceso_retornos.std()) * np.sqrt(252) if exceso_retornos.std() > 0 else np.nan
 
-# =========================
-# 2) PANEL 4 (área apilada)
-# =========================
+
+def compute_drawdown(series):
+    cummax = series.cummax()
+    drawdown = (series - cummax) / cummax
+    return drawdown
+
+drawdown_naive = compute_drawdown(resultado_naive['valor'])
+
+window = 63  # 3 meses aprox
+vol_rolling = retornos_naive.rolling(window).std() * np.sqrt(252)
+
+#(área apilada)
 df = portafolio_fundamental.copy()
 df.index = pd.to_datetime(df.index)
 df = df.sort_index().fillna(0)
@@ -59,19 +68,21 @@ row_sum = df[ordered_cols].sum(axis=1).replace(0, np.nan)
 df_norm = df[ordered_cols].div(row_sum, axis=0).fillna(0)
 
 # =========================
-# 3) FIGURA CON 4 SUBPLOTS
+#  FIGURA CON 4 SUBPLOTS
 # =========================
 fig = make_subplots(
-    rows=4, cols=1,
+    rows=6, cols=1,
     shared_xaxes=True,
     vertical_spacing=0.07,
     subplot_titles=(
         "Capital Acumulado Diario: Estrategia Naive vs. Merval",
         "Ratio de Capital: Naive / Merval",
         "Rendimiento Trimestral: Estrategia Naive vs. Merval",
-        "Pesos del Portafolio a lo largo del tiempo"
+        "Pesos del Portafolio a lo largo del tiempo",
+        "Drawdown Estrategia Naive",
+        f"Volatilidad Rolling ({window} días)"
     ),
-    row_heights=[0.34, 0.18, 0.18, 0.30]
+    row_heights=[0.25, 0.12, 0.15, 0.20, 0.14, 0.14]
 )
 
 # --- Row 1: capital acumulado
@@ -120,6 +131,28 @@ for col in ordered_cols:
         ),
         row=4, col=1
     )
+# --- Row 5: Drawdown
+fig.add_trace(
+    go.Scatter(
+        x=drawdown_naive.index, y=drawdown_naive,
+        mode='lines', name='Drawdown',
+        line=dict(color='crimson'),
+        hovertemplate="Fecha=%{x|%Y-%m-%d}<br>DD=%{y:.2%}<extra></extra>"
+    ),
+    row=5, col=1
+)
+fig.add_hline(y=0.0, line_dash="dash", line_color="gray", row=5, col=1)
+
+# --- Row 6: Volatilidad rolling
+fig.add_trace(
+    go.Scatter(
+        x=vol_rolling.index, y=vol_rolling,
+        mode='lines', name=f'Volatilidad {window}d',
+        line=dict(color='orange'),
+        hovertemplate="Fecha=%{x|%Y-%m-%d}<br>Vol=%{y:.2%}<extra></extra>"
+    ),
+    row=6, col=1
+)
 
 # --- Anotaciones y ejes
 anotacion_texto = (
@@ -136,10 +169,12 @@ fig.update_yaxes(title_text="Capital Acumulado", type="log", row=1, col=1)
 fig.update_yaxes(title_text="Ratio", tickformat=".2f", row=2, col=1)
 fig.update_yaxes(title_text="Trimestral [%]", tickformat=".2f", ticksuffix="%", row=3, col=1)
 fig.update_yaxes(title_text="Peso", tickformat=".0%", range=[0, 1], row=4, col=1)
+fig.update_yaxes(title_text="Drawdown", tickformat=".0%", row=5, col=1)
+fig.update_yaxes(title_text="Volatilidad", tickformat=".0%", row=6, col=1)
 
 fig.update_layout(
-    height=1300, width=1000,
-    title_text="Estrategia Naive vs. Merval (Capital, Ratio, Retorno Trimestral y Pesos del Portafolio)",
+    height=1500, width=1000,
+    title_text="Estrategia Naive vs. Merval (Capital, Ratio, Retorno Trimestral, Pesos, Drawdown y Volatilidad)",
     barmode='group',
     template="plotly_white",
     legend=dict(
@@ -153,5 +188,5 @@ fig.update_layout(
 )
 
 # Exportá la versión combinada
-fig.write_html(r"C:\Users\Pedro\Research\Fundamentals\Bloomberg\fundamentals_project\Charts\blend_vs_merval_new_portfolio.html")
+fig.write_html(r"C:\Users\Pedro\Research\Fundamentals\Bloomberg\fundamentals_project\Charts\blend_vs_merval.html")
 

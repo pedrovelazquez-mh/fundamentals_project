@@ -3,7 +3,7 @@ import config_fundamentals as cfg
 from collections import defaultdict
 
 
-def backtest_sector_lagged_strategy(portafolio, data_base_precios, merval,market_caps, CFG=cfg):
+def backtest_sector_lagged_strategy(portafolio, data_base_precios, merval, CFG=cfg):
 
     portafolio = portafolio.copy()
     data_base_precios = data_base_precios.copy()
@@ -27,17 +27,6 @@ def backtest_sector_lagged_strategy(portafolio, data_base_precios, merval,market
     # Validación suave: si aún quedaran NaNs, preferimos “next available” (forward) SOLO para *valuación* diaria.
     # Para la *ejecución* usamos el valor de ese día en panel (que debería existir gracias al forward_fill previo).
     panel_val = panel.ffill()  # solo para valuación del NAV diario
-    # --------- Panel de market caps (opcional) ----------
-    if market_caps is not None:
-        mc = market_caps.copy()
-        mc['Date'] = pd.to_datetime(mc['Date'])
-        # IMPORTANTE: asegurá que 'Ticker' matchee el formato de columnas de 'panel'
-        cap_panel = (mc.pivot_table(index='Date', columns='Ticker', values='HISTORICAL_MARKET_CAP', aggfunc='last')
-                       .reindex(trading_days)  # calendario MERVAL
-                       .ffill()                # último cap conocido <= fecha
-                       .sort_index())
-    else:
-        cap_panel = None
 
     # --------- Config ----------
     sector_of = dict(CFG.ticker_sector)                    # ticker -> sector
@@ -143,45 +132,20 @@ def backtest_sector_lagged_strategy(portafolio, data_base_precios, merval,market
             return
 
         # ---- NUEVO: pesos por market cap con último dato conocido (ffill) ----
-        caps_today = None
-        if cap_panel is not None:
-            try:
-                # Puede levantar KeyError si la fecha no está; en ese caso queda None y cae en 1/n
-                caps_today = cap_panel.loc[fecha, valid_targets].astype(float)
-                caps_today = caps_today.where(caps_today > 0).dropna()
-            except KeyError:
-                caps_today = None
+        n = len(valid_targets)
+        if n == 0:
+            return
+        per_value = current_val / n
 
-        if caps_today is None or caps_today.empty:
-            # Fallback 1/n si no hay caps válidos para hoy
-            n = len(valid_targets)
-            per_value = current_val / n
-            for t in valid_targets:
-                p = px_exec.get(t)
-                if pd.isna(p) or p <= 0:
-                    continue
-                target_qty = per_value / float(p)
-                delta_qty  = target_qty - qty[t]
-                cash -= delta_qty * float(p)
-                qty[t] = target_qty
-        else:
-            weights = (caps_today / caps_today.sum()).to_dict()
-            for t in valid_targets:
-                p = px_exec.get(t)
-                if pd.isna(p) or p <= 0:
-                    continue
-                w = float(weights.get(t, 0.0))
-                if w <= 0.0:
-                    # si no tiene cap válido hoy, lo dejamos en 0
-                    if qty[t] != 0.0:
-                        cash += qty[t] * float(p)
-                        qty[t] = 0.0
-                    continue
-                target_value = current_val * w
-                target_qty   = target_value / float(p)
-                delta_qty    = target_qty - qty[t]
-                cash -= delta_qty * float(p)
-                qty[t] = target_qty
+        # ajustar cantidades para equiponderar en valor
+        for t in valid_targets:
+            p = px_exec.get(t)
+            if pd.isna(p) or p <= 0:
+                continue
+            target_qty = per_value / float(p)
+            delta_qty  = target_qty - qty[t]
+            cash -= delta_qty * float(p)
+            qty[t] = target_qty
 
     def rebalance_macro_to_targets(fecha, ciclo_id):
         """Alinea a sector_weights sobre el NAV del día (ejecución con precios del día, sin ffill local).

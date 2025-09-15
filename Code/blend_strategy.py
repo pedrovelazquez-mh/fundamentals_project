@@ -55,8 +55,8 @@ portafolio = build_portfolio_binario(blend)
 resultado_naive, portafolio_fundamental, logs = bt.backtest_sector_lagged_strategy(
     portafolio=portafolio,
     data_base_precios=cd.data_base_precios,
-    merval=cd.merval,
-    market_caps=cd.market_caps)
+    merval=cd.merval)
+ #   market_caps=cd.market_caps)
 resultado_naive['Date'] = resultado_naive.index
 # portafolio_fundamental["suma_total"] = portafolio_fundamental.sum(axis=1)
 # portafolio_fundamental["retorno_diario"] = (portafolio_fundamental["suma_total"].pct_change())
